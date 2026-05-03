@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MNIST Digit Recognizer</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        h1 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        p {
+            color: #7f8c8d;
+            margin-bottom: 1.5rem;
+        }
+        canvas {
+            border: 2px solid #34495e;
+            border-radius: 8px;
+            cursor: crosshair;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+            background-color: black;
+            touch-action: none; /* Prevent scrolling on touch devices while drawing */
+        }
+        .controls {
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        #clear-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+        #clear-btn:hover {
+            background-color: #c0392b;
+        }
+        #predict-btn {
+            background-color: #3498db;
+            color: white;
+        }
+        #predict-btn:hover {
+            background-color: #2980b9;
+        }
+        .result {
+            margin-top: 1.5rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+            min-height: 40px;
+        }
+        #prediction {
+            color: #27ae60;
+            font-size: 3rem;
+            display: block;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>MNIST Recognizer</h1>
+    <p>Draw a single digit (0-9) below</p>
+    
+    <canvas id="canvas" width="280" height="280"></canvas>
+    
+    <div class="controls">
+        <button id="clear-btn">Clear</button>
+        <button id="predict-btn">Predict</button>
+    </div>
+    
+    <div class="result">
+        Prediction: <span id="prediction">-</span>
+    </div>
+</div>
+
+<!-- Load TensorFlow.js if you want to run inference directly in browser -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script> -->
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const clearBtn = document.getElementById('clear-btn');
+    const predictBtn = document.getElementById('predict-btn');
+    const predictionSpan = document.getElementById('prediction');
+
+    let isDrawing = false;
+
+    // Initialize canvas with black background
+    function initCanvas() {
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 20;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+    }
+
+    initCanvas();
+
+    function startPosition(e) {
+        isDrawing = true;
+        draw(e);
+    }
+
+    function endPosition() {
+        isDrawing = false;
+        ctx.beginPath();
+    }
+
+    function getMousePos(canvas, evt) {
+        var rect = canvas.getBoundingClientRect();
+        return {
+            x: (evt.clientX || evt.touches[0].clientX) - rect.left,
+            y: (evt.clientY || evt.touches[0].clientY) - rect.top
+        };
+    }
+
+    function draw(e) {
+        if (!isDrawing) return;
+        
+        e.preventDefault(); // Prevent scrolling on touch
+        const pos = getMousePos(canvas, e);
+
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+    }
+
+    // Event listeners for Mouse
+    canvas.addEventListener('mousedown', startPosition);
+    canvas.addEventListener('mouseup', endPosition);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseleave', endPosition);
+
+    // Event listeners for Touch
+    canvas.addEventListener('touchstart', startPosition, {passive: false});
+    canvas.addEventListener('touchend', endPosition);
+    canvas.addEventListener('touchmove', draw, {passive: false});
+
+    clearBtn.addEventListener('click', () => {
+        initCanvas();
+        predictionSpan.textContent = '-';
+        predictionSpan.style.color = '#27ae60';
+    });
+
+    predictBtn.addEventListener('click', async () => {
+        predictionSpan.textContent = '...';
+        
+        // ---------------------------------------------------------
+        // TODO: IMPLEMENT MODEL INFERENCE HERE
+        // ---------------------------------------------------------
+        // You have two main options for deployment:
+        // 
+        // OPTION 1: Send image to a Python Backend (Flask/FastAPI)
+        // const dataURL = canvas.toDataURL();
+        // const response = await fetch('http://your-api-url/predict', {
+        //     method: 'POST',
+        //     headers: { 'Content-Type': 'application/json' },
+        //     body: JSON.stringify({ image: dataURL })
+        // });
+        // const data = await response.json();
+        // predictionSpan.textContent = data.prediction;
+        //
+        // OPTION 2: Run directly in browser using TensorFlow.js
+        // const tensor = tf.browser.fromPixels(canvas)
+        //     .resizeBilinear([28, 28])
+        //     .mean(2)
+        //     .expandDims(0)
+        //     .expandDims(-1)
+        //     .toFloat()
+        //     .div(255.0);
+        // const prediction = model.predict(tensor);
+        // predictionSpan.textContent = prediction.argMax(1).dataSync()[0];
+        // ---------------------------------------------------------
+
+        // Mock prediction for demonstration
+        setTimeout(() => {
+            const mockPred = Math.floor(Math.random() * 10);
+            predictionSpan.textContent = mockPred;
+        }, 500);
+    });
+</script>
+
+</body>
+</html>
